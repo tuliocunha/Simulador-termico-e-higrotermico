@@ -1,0 +1,54 @@
+id,nome,lambda,mu,categoria
+reboco_ext,Reboco cimento exterior,1.300,25,REVESTIMENTOS
+reboco_int,Reboco gesso interior,0.300,10,REVESTIMENTOS
+gessocartonado,Gesso cartonado 13mm,0.190,22,REVESTIMENTOS
+placo_int,Placo interior 15mm,0.250,15,REVESTIMENTOS
+reboco_cimento,Reboco cimento interior,1.000,20,REVESTIMENTOS
+estuque_gesso,Estuque gesso interior,0.300,10,REVESTIMENTOS
+pvc,PVC exterior,0.170,10000,REVESTIMENTOS
+aluminio_ext,Aluminio exterior,205.000,100000,REVESTIMENTOS
+madeira_ext,Madeira exterior radial,0.150,200,REVESTIMENTOS
+tijolo15,Tijolo furado 15cm,0.450,10,ALVENARIA
+tijolo22,Tijolo furado 22cm,0.410,10,ALVENARIA
+tijolo30,Tijolo furado 30cm,0.380,10,ALVENARIA
+tijolo11,Tijolo ceramico 11cm,0.500,10,ALVENARIA
+tijolo19,Tijolo ceramico 19cm,0.460,10,ALVENARIA
+bloco_ceram10,Bloco ceramico 10cm,0.520,12,ALVENARIA
+bloco_ceram15,Bloco ceramico 15cm,0.480,12,ALVENARIA
+bloco_ceram20,Bloco ceramico 20cm,0.450,12,ALVENARIA
+bloco_ceram25,Bloco ceramico 25cm,0.420,12,ALVENARIA
+betão_armado,Betão armado C20/25,2.000,80,BETÃO
+betão_celular600,Betão celular 600kg/m³,0.140,35,BETÃO
+betão_celular800,Betão celular 800kg/m³,0.200,40,BETÃO
+leca100,Leca-Bloc 10cm,0.450,80,BETÃO
+leca150,Leca-Bloc 15cm,0.420,80,BETÃO
+painel_sandwich,Painel sandwich PUR,0.025,50,BETÃO
+painel_pir,Painel sandwich PIR,0.022,30,BETÃO
+eps30,EPS 30 λ=0.040,0.040,60,ISOLANTES
+eps40,EPS 40 λ=0.038,0.038,60,ISOLANTES
+eps50,EPS 50 λ=0.036,0.036,60,ISOLANTES
+eps60,EPS 60 λ=0.034,0.034,60,ISOLANTES
+eps70,EPS 70 λ=0.032,0.032,60,ISOLANTES
+eps100,EPS 100 λ=0.031,0.031,60,ISOLANTES
+xps15,XPS 150 λ=0.035,0.035,150,ISOLANTES
+xps20,XPS 200 λ=0.034,0.034,150,ISOLANTES
+xps30,XPS 300 λ=0.033,0.033,150,ISOLANTES
+xps40,XPS 400 λ=0.032,0.032,150,ISOLANTES
+la_mineral35,Lã mineral 35,0.035,1,ISOLANTES
+la_mineral40,Lã mineral 40,0.040,1,ISOLANTES
+la_rocha35,Lã de rocha 35,0.035,1.2,ISOLANTES
+la_rocha40,Lã de rocha 40,0.040,1.2,ISOLANTES
+pir20,PIR 20kg/m³,0.022,30,ISOLANTES
+pir25,PIR 25kg/m³,0.025,30,ISOLANTES
+pur25,PUR 25kg/m³,0.025,50,ISOLANTES
+fenolico,Painel fenólico,0.020,20,ISOLANTES
+cortica_exp,Cortiça expandida,0.040,50,ISOLANTES
+cortica_aglo,Cortiça aglomerada,0.045,20,ISOLANTES
+aluminio_vapor,Alumínio barreira vapor,205.000,100000,BARREIRAS VAPOR
+kraft_bitumado,Kraft bitumado barreira vapor,0.160,1000,BARREIRAS VAPOR
+polietileno_vapor,Polietileno barreira vapor,0.400,10000,BARREIRAS VAPOR
+madeira_abete,Madeira abeto radial,0.120,200,ESPECIAIS
+madeira_pinheiro,Madeira pinho radial,0.130,200,ESPECIAIS
+granito,Cantaria granito,2.800,500,ESPECIAIS
+calcario,Cantaria calcário,1.300,50,ESPECIAIS
+telha_ceram,Telha cerâmica,0.840,50,ESPECIAIS
