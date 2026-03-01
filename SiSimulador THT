@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Avaliação Térmica e Higrotérmica | REH PT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Tipografia -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --accent: #1f6f8b;
+      --accent-soft: #e0f2f7;
+      --text-main: #1f2933;
+      --text-soft: #6b7280;
+      --danger: #e11d48;
+      --warn: #f59e0b;
+      --ok: #16a34a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+    }
+    .app {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    h2 {
+      font-size: 1.2rem;
+      margin: 1.5rem 0 0.75rem;
+      font-weight: 600;
+    }
+    p.subtitle {
+      margin: 0 0 1rem;
+      color: var(--text-soft);
+      font-size: 0.9rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    @media (min-width: 900px) {
+      .grid-2 {
+        grid-template-columns: 1.1fr 1.2fr;
+      }
+    }
+    .card {
+      background: var(--card);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.5rem;
+    }
+    .card-header span {
+      font-size: 0.8rem;
+      color: var(--text-soft);
+    }
+    label {
+      display: block;
+      font-size: 0.85rem;
+      margin-bottom: 0.25rem;
+      color: var(--text-soft);
+    }
+    select, input {
+      width: 100%;
+      padding: 0.4rem 0.5rem;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+      font-size: 0.9rem;
+      margin-bottom: 0.6rem;
+      background: #f9fafb;
+    }
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 0.45rem 1.1rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      background: var(--accent);
+      color: white;
+      font-weight: 500;
+    }
+    button.secondary {
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+    }
+    .row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .row > div {
+      flex: 1 1 120px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .badge.ok { background: #dcfce7; color: var(--ok); }
+    .badge.warn { background: #fef3c7; color: var(--warn); }
+    .badge.danger { background: #fee2e2; color: var(--danger); }
+    .pizza-matrix {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+    }
+    @media (max-width: 800px) {
+      .pizza-matrix {
+        grid-template-columns: 1fr;
+      }
+    }
+    .pizza-cell {
+      background: var(--card);
+      border-radius: 10px;
+      padding: 0.75rem;
+      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .pizza-title {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-soft);
+    }
+    .charts-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .svg-wrapper {
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 0.25rem;
+      background: #ffffff;
+    }
+    .higro-note {
+      font-size: 0.8rem;
+      color: var(--text-soft);
+      line-height: 1.4;
+    }
+    .credit {
+      font-size: 0.7rem;
+      text-align: right;
+      color: #9ca3af;
+      margin-top: 0.15rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+    }
+    th, td {
+      border: 1px solid #e5e7eb;
+      padding: 0.3rem 0.4rem;
+      text-align: center;
+    }
+    th {
+      background: #f3f4f6;
+      font-weight: 500;
+    }
+    .toolbar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .biblioteca-box {
+      margin-top: 0.75rem;
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+      background: #f1f5f9;
+      font-size: 0.8rem;
+      color: var(--text-soft);
+    }
+    .biblioteca-box strong {
+      color: var(--text-main);
+    }
+    @media print {
+      body { background: #ffffff; }
+      .toolbar { display: none; }
+      .card { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="toolbar">
+    <button class="secondary" onclick="window.print()">Exportar PDF</button>
+  </div>
+
+  <h1>Avaliação térmica e higrotérmica de elementos opacos</h1>
+  <p class="subtitle">
+    Compatível com REH (DL 101‑D/2020, Portaria 138‑I/2021) – U‑value + risco de condensação (ISO 6946 + ISO 13788)
+    e biblioteca de soluções tipo SCE/ADENE.
+  </p>
+
+  <div class="grid grid-2">
+    <!-- Painel de entrada -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Configuração do elemento</h2>
+        <span>Definição de camadas</span>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Tipo de elemento</label>
+          <select id="tipoElemento">
+            <option value="parede">Parede exterior</option>
+            <option value="cobertura">Cobertura</option>
+            <option value="pavimento_solo">Pavimento sobre solo</option>
+            <option value="pavimento_nu">Pavimento sobre espaço não útil</option>
+          </select>
+        </div>
+        <div>
+          <label>Zona climática</label>
+          <select id="zonaClimatica">
+            <option value="I">Zona I</option>
+            <option value="II">Zona II</option>
+            <option value="III">Zona III</option>
+            <option value="IV">Zona IV</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Nome do elemento</label>
+          <input id="nomeElemento" placeholder="Ex.: Parede ETICS 20cm">
+        </div>
+        <div>
+          <label>Nº de camadas</label>
+          <input id="numCamadas" type="number" min="1" value="3">
+        </div>
+      </div>
+
+      <button onclick="definirCamadas()">Definir camadas</button>
+
+      <div id="camadasContainer" style="margin-top:0.75rem;"></div>
+
+      <div style="margin-top:0.75rem; display:flex; gap:0.5rem;">
+        <button onclick="calcularElemento()">Calcular elemento</button>
+        <button class="secondary" onclick="limparAtual()">Limpar atual</button>
+      </div>
+
+      <div id="bibliotecaSugestao" class="biblioteca-box" style="display:none;">
+        <strong>Biblioteca de soluções tipo SCE/ADENE</strong><br>
+        Foi detetado um novo elemento. Deseja comparar com uma solução de referência?
+        <div style="margin-top:0.4rem;">
+          <select id="bibliotecaSelect"></select>
+        </div>
+        <div style="margin-top:0.4rem; display:flex; gap:0.5rem;">
+          <button onclick="adicionarDaBiblioteca()">Adicionar solução de comparação</button>
+          <button class="secondary" onclick="fecharSugestao()">Agora não</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Painel de resultados globais -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Limites REH e resultados</h2>
+        <span>Portaria 138‑I/2021</span>
+      </div>
+
+      <div id="resultadoResumo" style="font-size:0.9rem; color:var(--text-soft);">
+        Selecione o tipo de elemento, zona climática e defina as camadas para calcular U e o risco de condensação.
+      </div>
+
+      <h3 style="font-size:0.9rem; margin-top:1rem;">Limites U‑value (habitação, novos)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Elemento</th>
+            <th>Zona I</th>
+            <th>Zona II</th>
+            <th>Zona III</th>
+            <th>Zona IV</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Parede ext.</td><td>0,28</td><td>0,28</td><td>0,35</td><td>0,35</td>
+          </tr>
+          <tr>
+            <td>Cobertura</td><td>0,18</td><td>0,18</td><td>0,22</td><td>0,22</td>
+          </tr>
+          <tr>
+            <td>Pav. não útil</td><td>0,30</td><td>0,30</td><td>0,40</td><td>0,40</td>
+          </tr>
+          <tr>
+            <td>Pav. solo</td><td>0,40</td><td>0,40</td><td>0,45</td><td>0,45</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h2>Simulações guardadas</h2>
+  <p class="subtitle">
+    Cada célula mostra U‑value, desenho técnico e nota higrotérmica. Soluções da biblioteca são marcadas como “tipo SCE/ADENE”.
+  </p>
+  <div id="pizzaGrid" class="pizza-matrix"></div>
+
+  <h2>Referências normativas</h2>
+  <div class="card" style="font-size:0.8rem;">
+    <p><strong>Legislação portuguesa</strong></p>
+    <p>[1] DL 101‑D/2020 – Sistema de Certificação Energética dos Edifícios (SCE)</p>
+    <p>[2] Portaria 138‑I/2021 – Requisitos de desempenho energético (REH)</p>
+    <p>[3] Portaria 349‑B/2013 – Dados climáticos de referência SCE</p>
+    <p><strong>Normas técnicas</strong></p>
+    <p>[4] NP EN ISO 6946:2008 – Coeficiente de transmissão térmica U</p>
+    <p>[5] NP EN ISO 13788:2013 – Condensações superficiais e intersticiais</p>
+    <p>[6] NP EN ISO 10456:2007 – Propriedades térmicas e higrotérmicas de materiais</p>
+  </div>
+</div>
+
+<script>
+  // Limites U (REH habitação, novos)
+  const U_LIMITES = {
+    parede:   { I: 0.28, II: 0.28, III: 0.35, IV: 0.35 },
+    cobertura:{ I: 0.18, II: 0.18, III: 0.22, IV: 0.22 },
+    pavimento_nu:{ I: 0.30, II: 0.30, III: 0.40, IV: 0.40 },
+    pavimento_solo:{ I: 0.40, II: 0.40, III: 0.45, IV: 0.45 }
+  };
+
+  // Resistências superficiais simplificadas
+  const R_SUP = {
+    parede: { Rsi: 0.13, Rse: 0.04 },
+    cobertura: { Rsi: 0.10, Rse: 0.04 },
+    pavimento_nu: { Rsi: 0.17, Rse: 0.04 },
+    pavimento_solo: { Rsi: 0.17, Rse: 0.04 }
+  };
+
+  // Clima mensal real (T_e, HR_e, dias) por zona (aprox. IPMA/SCE)
+  const CLIMA = {
+    I: [
+      [9.5, 0.82, 31],[10.5,0.80,28],[12.5,0.78,31],[13.5,0.75,30],
+      [15.5,0.73,31],[18.0,0.70,30],[20.5,0.68,31],[21.0,0.68,31],
+      [19.0,0.70,30],[16.0,0.75,31],[12.0,0.80,30],[10.0,0.82,31]
+    ],
+    II: [
+      [11.0,0.78,31],[12.0,0.75,28],[14.0,0.73,31],[15.0,0.70,30],
+      [17.0,0.68,31],[20.0,0.65,30],[23.0,0.60,31],[24.0,0.60,31],
+      [22.0,0.65,30],[18.0,0.70,31],[14.0,0.75,30],[12.0,0.78,31]
+    ],
+    III: [
+      [12.5,0.75,31],[13.0,0.73,28],[15.0,0.70,31],[16.5,0.68,30],
+      [19.0,0.65,31],[22.0,0.60,30],[25.0,0.55,31],[26.0,0.55,31],
+      [23.5,0.60,30],[20.0,0.65,31],[16.0,0.70,30],[13.5,0.75,31]
+    ],
+    IV: [
+      [10.0,0.78,31],[11.0,0.75,28],[14.0,0.70,31],[16.0,0.65,30],
+      [19.5,0.60,31],[23.0,0.55,30],[27.0,0.50,31],[28.0,0.50,31],
+      [24.0,0.55,30],[19.0,0.65,31],[14.0,0.70,30],[11.0,0.75,31]
+    ]
+  };
+
+  const DELTA_0 = 2.15e-10; // kg/(m·s·Pa)
+
+  // Biblioteca de soluções tipo SCE/ADENE (18 soluções)
+  const BIBLIOTECA = {
+    parede: [
+      {
+        nome: "Parede ETICS 60mm (tipo SCE/ADENE)",
+        camadas: [
+          { material: "Reboco int.", lambda: 0.87, mu: 15, d: 0.015 },
+          { material: "Tijolo furado 20cm", lambda: 0.77, mu: 10, d: 0.20 },
+          { material: "EPS 60mm", lambda: 0.035, mu: 30, d: 0.06 },
+          { material: "Reboco ext.", lambda: 1.00, mu: 20, d: 0.015 }
+        ]
+      },
+      {
+        nome: "Parede ETICS 100mm (tipo SCE/ADENE)",
+        camadas: [
+          { material: "Reboco int.", lambda: 0.87, mu: 15, d: 0.015 },
+          { material: "Tijolo furado 20cm", lambda: 0.77, mu: 10, d: 0.20 },
+          { material: "EPS 100mm", lambda: 0.035, mu: 30, d: 0.10 },
+          { material: "Reboco ext.", lambda: 1.00, mu: 20, d: 0.015 }
+        ]
+      },
+      {
+        nome: "Parede dupla com caixa de ar ventilada (tipo SCE/ADENE)",
+        camadas: [
+          { material: "Reboco int.", lambda: 0.87, mu: 15, d: 0.015 },
+          { material: "Tijolo furado 11cm", lambda: 0.77, mu: 10, d: 0.11 },
+          { material: "Caixa de ar 4cm", lambda: 0.025, mu: 1000000, d: 0.04 },
+          { material: "Tijolo 15cm", lambda: 0.77, mu: 10, d: 0.15 },
+          { material: "Reboco ext.", lambda: 1.00, mu: 20, d: 0.015 }
+        ]
+      },
+      {
+        nome: "Parede LSF 100mm + lã mineral (tipo SCE/ADENE)",
+        camadas: [
+          { material: "Placa gesso", lambda: 0.25, mu: 10, d: 0.013 },
+          { material: "Lã mineral 100mm", lambda: 0.035, mu: 1, d: 0.10 },
+          { material: "OSB", lambda: 0.13, mu: 50, d: 0.015 }
+        ]
+      },
+      {
+        nome: "Parede LSF 150mm + lã mineral (tipo SCE/ADENE)",
+        camadas: [
+          { material: "Placa gesso", lambda: 0.25, mu: 10, d: 0.013 },
+          { material: "Lã mineral 150mm", lambda: 0.035, mu: 1, d: 0.15 },
+          { material: "OSB", lambda: 0.13, mu: 50, d: 0.015 }
+        ]
+      },
+      {
+        nome: "Parede tijolo 30cm + isolamento interior (tipo SCE/ADENE)",
+        camadas: [
+          { material: "Reboco int.", lambda: 0.87, mu: 15, d: 0.015 },
+          { material: "Lã mineral 60mm", lambda: 0.035, mu: 1, d: 0.06 },
+          { material: "Tijolo 30cm", lambda: 0.77, mu: 10, d: 0.30 },
+          { material: "Reboco ext.", lambda: 1.00, mu: 20, d: 0.015 }
+        ]
+      }
+    ],
+    cobertura: [
+      {
+        nome: "Cobertura inclinada lã mineral 150mm (tipo SCE/ADENE)",
+        camadas: [
+          { material: "Revest. int.", lambda: 0.25, mu: 10, d: 0.013 },
+          { material: "Lã mineral 150mm", lambda: 0.035, mu: 1, d: 0.15 },
+          { material: "Subtelha", lambda: 0.20, mu: 50, d: 0.015 },
+          { material: "Telha cerâmica", lambda: 1.00, mu: 50, d: 0.015 }
+        ]
+      },
+      {
+        nome: "Cobertura inclinada lã mineral 200mm (tipo SCE/ADENE)",
+        camadas: [
+          { material: "Revest. int.", lambda: 0.25, mu: 10, d: 0.013 },
+          { material: "Lã mineral 200mm", lambda: 0.035, mu: 1, d: 0.20 },
+          { material: "Subtelha", lambda: 0.20, mu: 50, d: 0.015 },
+          { material: "Telha cerâmica", lambda: 1.00, mu: 50, d: 0.015 }
+        ]
+      },
+      {
+        nome: "Cobertura plana XPS 120mm (tipo SCE/ADENE)",
+        camadas: [
+          { material: "Laje betão 20cm", lambda: 1.40, mu: 50, d: 0.20 },
+          { material: "XPS 120mm", lambda: 0.034, mu: 80, d: 0.12 },
+          { material: "Impermeabilização", lambda: 0.20, mu: 100, d: 0.01 }
+        ]
+      },
+      {
+        nome: "Cobertura invertida XPS 80mm (tipo SCE/ADENE)",
+        camadas: [
+          { material: "Laje betão 20cm", lambda: 1.40, mu: 50, d: 0.20 },
+          { material: "Impermeabilização", lambda: 0.20, mu: 100, d: 0.01 },
+          { material: "XPS 80mm", lambda: 0.034, mu: 80, d: 0.08 }
+        ]
+      },
+      {
+        nome: "Cobertura metálica lã mineral 100mm (tipo SCE/ADENE)",
+        camadas: [
+          { material: "Painel metálico int.", lambda: 50.0, mu: 100000, d: 0.001 },
+          { material: "Lã mineral 100mm", lambda: 0.035, mu: 1, d: 0.10 },
+          { material: "Painel metálico ext.", lambda: 50.0, mu: 100000, d: 0.001 }
+        ]
+      },
+      {
+        nome: "Cobertura verde extensiva (simplificada, tipo SCE/ADENE)",
+        camadas: [
+          { material: "Laje betão 20cm", lambda: 1.40, mu: 50, d: 0.20 },
+          { material: "XPS 80mm", lambda: 0.034, mu: 80, d: 0.08 },
+          { material: "Substrato 80mm", lambda: 0.60, mu: 5, d: 0.08 }
+        ]
+      }
+    ],
+    pavimento_solo: [
+      {
+        nome: "Pavimento solo XPS 60mm (tipo SCE/ADENE)",
+        camadas: [
+          { material: "Acabamento 20mm", lambda: 1.00, mu: 20, d: 0.02 },
+          { material: "Betão 100mm", lambda: 1.40, mu: 50, d: 0.10 },
+          { material: "XPS 60mm", lambda: 0.034, mu: 80, d: 0.06 }
+        ]
+      },
+      {
+        nome: "Pavimento solo XPS 100mm (tipo SCE/ADENE)",
+        camadas: [
+          { material: "Acabamento 20mm", lambda: 1.00, mu: 20, d: 0.02 },
+          { material: "Betão 100mm", lambda: 1.40, mu: 50, d: 0.10 },
+          { material: "XPS 100mm", lambda: 0.034, mu: 80, d: 0.10 }
+        ]
+      },
+      {
+        nome: "Laje aligeirada com isolamento superior (tipo SCE/ADENE)",
+        camadas: [
+          { material: "Acabamento 20mm", lambda: 1.00, mu: 20, d: 0.02 },
+          { material: "Argamassa 40mm", lambda: 1.00, mu: 20, d: 0.04 },
+          { material: "EPS 60mm", lambda: 0.035, mu: 30, d: 0.06 },
+          { material: "Laje aligeirada 200mm", lambda: 1.40, mu: 50, d: 0.20 }
+        ]
+      },
+      {
+        nome: "Pavimento radiante com isolamento (tipo SCE/ADENE)",
+        camadas: [
+          { material: "Acabamento 20mm", lambda: 1.00, mu: 20, d: 0.02 },
+          { material: "Betonilha 60mm", lambda: 1.40, mu: 50, d: 0.06 },
+          { material: "XPS 80mm", lambda: 0.034, mu: 80, d: 0.08 },
+          { material: "Laje 200mm", lambda: 1.40, mu: 50, d: 0.20 }
+        ]
+      }
+    ],
+    pavimento_nu: [
+      {
+        nome: "Pavimento espaço não útil lã 80mm (tipo SCE/ADENE)",
+        camadas: [
+          { material: "Acabamento 20mm", lambda: 1.00, mu: 20, d: 0.02 },
+          { material: "Laje betão 160mm", lambda: 1.40, mu: 50, d: 0.16 },
+          { material: "Lã mineral 80mm", lambda: 0.035, mu: 1, d: 0.08 }
+        ]
+      },
+      {
+        nome: "Pavimento sobre garagem ventilada (tipo SCE/ADENE)",
+        camadas: [
+          { material: "Acabamento 20mm", lambda: 1.00, mu: 20, d: 0.02 },
+          { material: "Betão 120mm", lambda: 1.40, mu: 50, d: 0.12 },
+          { material: "Lã mineral 100mm", lambda: 0.035, mu: 1, d: 0.10 }
+        ]
+      },
+      {
+        nome: "Pavimento leve com isolamento inferior (tipo SCE/ADENE)",
+        camadas: [
+          { material: "Acabamento 20mm", lambda: 1.00, mu: 20, d: 0.02 },
+          { material: "Painel leve", lambda: 0.25, mu: 10, d: 0.03 },
+          { material: "Lã mineral 80mm", lambda: 0.035, mu: 1, d: 0.08 }
+        ]
+      },
+      {
+        nome: "Pavimento misto com EPS inferior (tipo SCE/ADENE)",
+        camadas: [
+          { material: "Acabamento 20mm", lambda: 1.00, mu: 20, d: 0.02 },
+          { material: "Laje 160mm", lambda: 1.40, mu: 50, d: 0.16 },
+          { material: "EPS 60mm", lambda: 0.035, mu: 30, d: 0.06 }
+        ]
+      }
+    ]
+  };
+
+  let simulacoes = [];
+  let contadorElementos = 0;
+
+  function definirCamadas() {
+    const n = parseInt(document.getElementById('numCamadas').value || '0', 10);
+    const container = document.getElementById('camadasContainer');
+    container.innerHTML = '';
+    if (n <= 0) return;
+    for (let i = 0; i < n; i++) {
+      const div = document.createElement('div');
+      div.className = 'row';
+      div.innerHTML = `
+        <div>
+          <label>Material camada ${i+1}</label>
+          <input data-camada="${i}" data-tipo="material" placeholder="Ex.: Tijolo, EPS">
+        </div>
+        <div>
+          <label>λ${i+1} [W/m·K]</label>
+          <input data-camada="${i}" data-tipo="lambda" type="number" step="0.001">
+        </div>
+        <div>
+          <label>μ${i+1} [-]</label>
+          <input data-camada="${i}" data-tipo="mu" type="number" step="0.1">
+        </div>
+        <div>
+          <label>d${i+1} [mm]</label>
+          <input data-camada="${i}" data-tipo="esp" type="number" step="1">
+        </div>
+      `;
+      container.appendChild(div);
+    }
+  }
+
+  function calcularElemento(fromBiblioteca = false, bibliotecaEntry = null) {
+    let tipo, zona, nome, camadas;
+
+    if (!fromBiblioteca) {
+      tipo = document.getElementById('tipoElemento').value;
+      zona = document.getElementById('zonaClimatica').value;
+      nome = document.getElementById('nomeElemento').value || 'Elemento sem nome';
+      const n = parseInt(document.getElementById('numCamadas').value || '0', 10);
+      if (n <= 0) return;
+
+      const inputs = document.querySelectorAll('#camadasContainer input');
+      camadas = [];
+      for (let i = 0; i < n; i++) {
+        const material = [...inputs].find(el => el.dataset.camada == i && el.dataset.tipo === 'material').value || `Camada ${i+1}`;
+        const lambda = parseFloat([...inputs].find(el => el.dataset.camada == i && el.dataset.tipo === 'lambda').value || '0');
+        const mu = parseFloat([...inputs].find(el => el.dataset.camada == i && el.dataset.tipo === 'mu').value || '1');
+        const esp_mm = parseFloat([...inputs].find(el => el.dataset.camada == i && el.dataset.tipo === 'esp').value || '0');
+        const d = esp_mm / 1000;
+        if (lambda <= 0 || d <= 0) continue;
+        const R = d / lambda;
+        camadas.push({ material, lambda, mu, d, R });
+      }
+      if (!camadas.length) return;
+    } else {
+      tipo = bibliotecaEntry.tipo;
+      zona = document.getElementById('zonaClimatica').value;
+      nome = bibliotecaEntry.nome;
+      camadas = bibliotecaEntry.camadas.map(c => ({
+        material: c.material,
+        lambda: c.lambda,
+        mu: c.mu,
+        d: c.d,
+        R: c.d / c.lambda
+      }));
+    }
+
+    const { Rsi, Rse } = R_SUP[tipo];
+    const R_total = Rsi + camadas.reduce((s,c)=>s+c.R,0) + Rse;
+    const U = 1 / R_total;
+    const U_lim = U_LIMITES[tipo][zona];
+
+    let classe = '';
+    let badgeClass = '';
+    if (U <= U_lim) { classe = 'Conforme REH'; badgeClass = 'ok'; }
+    else if (U <= 0.50) { classe = 'Melhorável'; badgeClass = 'warn'; }
+    else { classe = 'Não conforme (existente típico)'; badgeClass = 'danger'; }
+
+    const Ti = 20, HRi = 0.5;
+    const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    let condSupMeses = [];
+    let condIntMeses = [];
+    let interfacesCriticas = new Set();
+    let diasSup = 0;
+    let diasInt = 0;
+
+    for (let m = 0; m < 12; m++) {
+      const [Te, HRe, diasMes] = CLIMA[zona][m];
+
+      // Condensação superficial
+      const theta_si = Ti - (Rsi / R_total) * (Ti - Te);
+      const f_Rsi = (theta_si - Te) / (Ti - Te);
+      const T_dew = pontoOrvalho(Ti, HRi);
+      const f_Rsi_crit = (T_dew - Te) / (Ti - Te);
+      if (f_Rsi < f_Rsi_crit) {
+        condSupMeses.push(meses[m]);
+        diasSup += diasMes;
+      }
+
+      // Condensação intersticial (Glaser)
+      const p_i = HRi * pSat(Ti);
+      const p_e = HRe * pSat(Te);
+      const deltaP = p_i - p_e;
+
+      let Z_acum = [0];
+      let Z_total = 0;
+      camadas.forEach(c => {
+        const Zi = c.mu * c.d / DELTA_0;
+        Z_total += Zi;
+        Z_acum.push(Z_total);
+      });
+
+      let R_acum = [0];
+      let R_parcial = 0;
+      camadas.forEach(c => {
+        R_parcial += c.R;
+        R_acum.push(R_parcial);
+      });
+
+      let houveCondIntNesteMes = false;
+      for (let j = 1; j < Z_acum.length; j++) {
+        const px = p_i - deltaP * (Z_acum[j] / Z_total);
+        const thetax = Ti - (Ti - Te) * (R_acum[j] / R_total);
+        const psatx = pSat(thetax);
+        if (px > psatx) {
+          houveCondIntNesteMes = true;
+          interfacesCriticas.add(`${camadas[j-1].material} / ${camadas[j]?.material || 'exterior'}`);
+        }
+      }
+      if (houveCondIntNesteMes) {
+        condIntMeses.push(meses[m]);
+        diasInt += diasMes;
+      }
+    }
+
+    let severidadeSup = 'Baixa';
+    if (diasSup > 60) severidadeSup = 'Alta';
+    else if (diasSup > 30) severidadeSup = 'Média';
+
+    let severidadeInt = 'Baixa';
+    if (diasInt > 60) severidadeInt = 'Alta';
+    else if (diasInt > 30) severidadeInt = 'Média';
+
+    if (!fromBiblioteca) {
+      const resumo = document.getElementById('resultadoResumo');
+      resumo.innerHTML = `
+        <p><strong>${nome}</strong> (${tipo}, Zona ${zona})</p>
+        <p>U = ${U.toFixed(3)} W/m²K &nbsp; | &nbsp;
+           U_lim(REH) = ${U_lim.toFixed(2)} W/m²K &nbsp;
+           <span class="badge ${badgeClass}">${classe}</span></p>
+        <p>R_total = ${R_total.toFixed(2)} m²K/W &nbsp; | &nbsp;
+           Camadas: ${camadas.length}</p>
+        <p>Condensação superficial: ${condSupMeses.length ? 'Sim ('+condSupMeses.join(', ')+')' : 'Não'} &nbsp; | &nbsp;
+           Condensação intersticial: ${condIntMeses.length ? 'Sim ('+condIntMeses.join(', ')+')' : 'Não'}</p>
+      `;
+    }
+
+    simulacoes.push({
+      nome, tipo, zona, U, R_total, camadas,
+      condSupMeses, condIntMeses,
+      diasSup, diasInt,
+      severidadeSup, severidadeInt,
+      interfacesCriticas: Array.from(interfacesCriticas),
+      origemBiblioteca: fromBiblioteca
+    });
+    contadorElementos++;
+    renderPizzaGrid();
+
+    if (!fromBiblioteca) {
+      verificarSugestaoBiblioteca({ nome, tipo, zona, U, camadas });
+    }
+  }
+
+  function limparAtual() {
+    document.getElementById('camadasContainer').innerHTML = '';
+    document.getElementById('resultadoResumo').innerText =
+      'Selecione o tipo de elemento, zona climática e defina as camadas para calcular U e o risco de condensação.';
+  }
+
+  // Magnus–Tetens (T em °C, RH em fração 0–1)
+  function pontoOrvalho(T, RH) {
+    const a = 17.27, b = 237.7;
+    const gamma = (a * T) / (b + T) + Math.log(RH);
+    return (b * gamma) / (a - gamma);
+  }
+
+  // Pressão de vapor de saturação (Pa)
+  function pSat(T) {
+    const Tc = T;
+    return 610.78 * Math.exp((17.27 * Tc) / (Tc + 237.3));
+  }
+
+  function renderPizzaGrid() {
+    const grid = document.getElementById('pizzaGrid');
+    grid.innerHTML = '';
+    const k = simulacoes.length;
+    if (!k) return;
+    const n = Math.ceil(k / 3) * 3;
+
+    for (let i = 0; i < n; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'pizza-cell';
+      if (i < k) {
+        const sim = simulacoes[i];
+        const origem = sim.origemBiblioteca ? ' (tipo SCE/ADENE)' : '';
+        cell.innerHTML = `
+          <div class="pizza-title">${sim.nome}${origem} — ${sim.tipo}, Zona ${sim.zona}</div>
+          <div class="charts-row">
+            <canvas id="pizzaU_${i}"></canvas>
+            <div class="svg-wrapper" id="svg_${i}"></div>
+          </div>
+          <div class="higro-note" id="note_${i}"></div>
+          <div class="credit">Tulio Cunha — Gestão de Projetos</div>
+        `;
+        grid.appendChild(cell);
+        desenharPizzaU(`pizzaU_${i}`, sim);
+        desenharSVG(`svg_${i}`, sim);
+        escreverNotaHigro(`note_${i}`, sim);
+      } else {
+        cell.innerHTML = `<div class="pizza-title">Slot disponível</div>`;
+        grid.appendChild(cell);
+      }
+    }
+  }
+
+  function desenharPizzaU(canvasId, sim) {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    const U_lim = U_LIMITES[sim.tipo][sim.zona];
+    const data = {
+      labels: ['U calculado', 'Limite REH'],
+      datasets: [{
+        data: [sim.U, U_lim],
+        backgroundColor: ['#1f6f8b', '#a5d8ff']
+      }]
+    };
+    new Chart(ctx, {
+      type: 'pie',
+      data,
+      options: {
+        plugins: { legend: { display: false } },
+        responsive: true,
+        maintainAspectRatio: false
+      }
+    });
+  }
+
+  function desenharSVG(containerId, sim) {
+    const container = document.getElementById(containerId);
+    const vertical = (sim.tipo === 'parede' || sim.tipo === 'cobertura');
+    const width = 220, height = 220;
+    const totalEsp = sim.camadas.reduce((s,c)=>s+c.d,0);
+    let offset = 0;
+    let rects = '';
+
+    sim.camadas.forEach((c, idx) => {
+      const frac = c.d / totalEsp;
+
+      if (vertical) {
+        const h = frac * (height - 40);
+        rects += `
+          <rect x="40" y="${20 + offset}" width="${width - 80}" height="${h}"
+                fill="none" stroke="#111" stroke-width="1"/>
+          <text x="45" y="${20 + offset + h/2}" font-size="9" fill="#111">
+            ${c.material} — ${(c.d*1000).toFixed(0)} mm
+          </text>
+        `;
+        offset += h;
+      } else {
+        const w = frac * (width - 80);
+        rects += `
+          <rect x="${40 + offset}" y="60" width="${w}" height="${height - 120}"
+                fill="none" stroke="#111" stroke-width="1"/>
+          <text x="${40 + offset + w/2}" y="55" font-size="9" fill="#111" text-anchor="middle">
+            ${(c.d*1000).toFixed(0)} mm
+          </text>
+        `;
+        offset += w;
+      }
+    });
+
+    const escala = `
+      <line x1="40" y1="${height-10}" x2="${width-40}" y2="${height-10}"
+            stroke="#111" stroke-width="1"/>
+      <text x="${width/2}" y="${height-2}" font-size="9" fill="#111" text-anchor="middle">
+        Escala proporcional às espessuras
+      </text>
+    `;
+
+    const svg = `
+      <svg width="100%" height="100%" viewBox="0 0 ${width} ${height}"
+           xmlns="http://www.w3.org/2000/svg">
+        <rect x="0.5" y="0.5" width="${width-1}" height="${height-1}"
+              fill="none" stroke="#e5e7eb" stroke-width="1"/>
+        ${rects}
+        ${escala}
+        <text x="${width-5}" y="${height-5}" font-size="7" fill="#999" text-anchor="end">
+          Tulio Cunha — Gestão de Projetos
+        </text>
+      </svg>
+    `;
+
+    container.innerHTML = svg;
+  }
+
+  function escreverNotaHigro(noteId, sim) {
+    const el = document.getElementById(noteId);
+    const supMeses = sim.condSupMeses.length ? sim.condSupMeses.join(', ') : 'Nenhum';
+    const intMeses = sim.condIntMeses.length ? sim.condIntMeses.join(', ') : 'Nenhum';
+    const interfaces = sim.interfacesCriticas.length ? sim.interfacesCriticas.join(' | ') : 'Nenhuma interface crítica identificada';
+    el.innerHTML = `
+      <strong>Análise higrotérmica (ISO 13788):</strong><br>
+      • Superficial: ${sim.condSupMeses.length ? 'Sim' : 'Não'} (${supMeses})<br>
+      • Intersticial: ${sim.condIntMeses.length ? 'Sim' : 'Não'} (${intMeses})<br>
+      • Interfaces críticas: ${interfaces}<br>
+      • Dias risco superficial: ${sim.diasSup} dias/ano (${sim.severidadeSup})<br>
+      • Dias risco intersticial: ${sim.diasInt} dias/ano (${sim.severidadeInt})
+    `;
+  }
+
+  // --- Biblioteca: sugestão automática ---
+
+  function verificarSugestaoBiblioteca(elementoBase) {
+    if (contadorElementos === 1 || contadorElementos % 6 === 0) {
+      const candidatos = filtrarBiblioteca(elementoBase);
+      if (candidatos.length) {
+        const box = document.getElementById('bibliotecaSugestao');
+        const select = document.getElementById('bibliotecaSelect');
+        select.innerHTML = '';
+        candidatos.forEach((c, idx) => {
+          const opt = document.createElement('option');
+          opt.value = idx;
+          opt.textContent = c.nome;
+          select.appendChild(opt);
+        });
+        box.dataset.tipo = elementoBase.tipo;
+        box.dataset.candidatos = JSON.stringify(candidatos);
+        box.style.display = 'block';
+      }
+    }
+  }
+
+  function filtrarBiblioteca(elementoBase) {
+    const tipo = elementoBase.tipo;
+    const lista = BIBLIOTECA[tipo] || [];
+    if (!lista.length) return [];
+
+    const espUser = elementoBase.camadas.reduce((s,c)=>s+c.d,0);
+    const materiaisUser = elementoBase.camadas.map(c => c.material.toLowerCase());
+
+    return lista.filter(sol => {
+      const espSol = sol.camadas.reduce((s,c)=>s+c.d,0);
+      const ratioEsp = espSol / espUser;
+      if (ratioEsp < 0.8 || ratioEsp > 1.2) return false;
+
+      const materiaisSol = sol.camadas.map(c => c.material.toLowerCase());
+      const temMaterialSimilar = materiaisSol.some(m =>
+        materiaisUser.some(mu => mu.includes('eps') && m.includes('eps')) ||
+        materiaisUser.some(mu => mu.includes('lã') && m.includes('lã')) ||
+        materiaisUser.some(mu => mu.includes('tijolo') && m.includes('tijolo')) ||
+        materiaisUser.some(mu => mu.includes('betão') && m.includes('betão'))
+      );
+
+      return temMaterialSimilar;
+    });
+  }
+
+  function adicionarDaBiblioteca() {
+    const box = document.getElementById('bibliotecaSugestao');
+    const select = document.getElementById('bibliotecaSelect');
+    const idx = parseInt(select.value || '0', 10);
+    const candidatos = JSON.parse(box.dataset.candidatos || '[]');
+    const sol = candidatos[idx];
+    if (!sol) return;
+    calcularElemento(true, { tipo: box.dataset.tipo, nome: sol.nome, camadas: sol.camadas });
+    box.style.display = 'none';
+  }
+
+  function fecharSugestao() {
+    document.getElementById('bibliotecaSugestao').style.display = 'none';
+  }
+</script>
+</body>
+</html>
