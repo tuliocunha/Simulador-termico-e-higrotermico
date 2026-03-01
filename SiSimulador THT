@@ -259,6 +259,18 @@
         </div>
       </div>
 
+      <div class="row">
+        <div>
+          <label>Ti [°C] (temperatura interior)</label>
+          <input id="inputTi" type="number" step="0.5" value="20">
+        </div>
+        <div>
+          <label>HRi [%] (humidade relativa interior)</label>
+          <input id="inputHRi" type="number" step="1" min="0" max="100" value="50">
+        </div>
+      </div>
+      <div id="inputValidacaoMsg" style="color:var(--danger);font-size:0.8rem;margin-bottom:0.4rem;display:none;"></div>
+
       <button onclick="definirCamadas()">Definir camadas</button>
 
       <div id="camadasContainer" style="margin-top:0.75rem;"></div>
@@ -335,8 +347,14 @@
     <p>[3] Portaria 349‑B/2013 – Dados climáticos de referência SCE</p>
     <p><strong>Normas técnicas</strong></p>
     <p>[4] NP EN ISO 6946:2008 – Coeficiente de transmissão térmica U</p>
-    <p>[5] NP EN ISO 13788:2013 – Condensações superficiais e intersticiais</p>
+    <p>[5] NP EN ISO 13788:2013 – Condensações superficiais e intersticiais (Glaser)</p>
     <p>[6] NP EN ISO 10456:2007 – Propriedades térmicas e higrotérmicas de materiais</p>
+    <p>[7] ISO 13370:2017 – Transmissão de calor pelo solo (necessário para U real de pavimento sobre solo)</p>
+    <p><strong>Notas metodológicas</strong></p>
+    <p>• U-value calculado via ISO 6946 (resistências em série); para pavimento sobre solo é apenas aproximação — usar ISO 13370 para cálculo regulamentar.</p>
+    <p>• Análise higrotérmica (Glaser simplificado, ISO 13788): perfil de pressão de vapor com clamp na interface de condensação crítica. Condensado acumulado em g/m²·mês. Evaporação em meses quentes reduz acumulação anual.</p>
+    <p>• Caixas de ar ventiladas: modeladas como camadas com λ e μ equivalentes (simplificação); em realidade, a caixa de ar ventilada interrompe o perfil de vapor — o exterior efectivo é o plano imediatamente interior à caixa.</p>
+    <p>• Análise higrotérmica NÃO APLICÁVEL para pavimento sobre solo (terreno ≠ ar exterior; requer metodologia específica).</p>
   </div>
 </div>
 
@@ -566,6 +584,17 @@
 
   let simulacoes = [];
   let contadorElementos = 0;
+  let chartInstances = {};
+  const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
 
   function definirCamadas() {
     const n = parseInt(document.getElementById('numCamadas').value || '0', 10);
@@ -605,7 +634,14 @@
       zona = document.getElementById('zonaClimatica').value;
       nome = document.getElementById('nomeElemento').value || 'Elemento sem nome';
       const n = parseInt(document.getElementById('numCamadas').value || '0', 10);
-      if (n <= 0) return;
+      const msgEl = document.getElementById('inputValidacaoMsg');
+      msgEl.style.display = 'none';
+
+      if (n <= 0 || n > 20) {
+        msgEl.textContent = 'Indique um número de camadas válido (1–20).';
+        msgEl.style.display = 'block';
+        return;
+      }
 
       const inputs = document.querySelectorAll('#camadasContainer input');
       camadas = [];
@@ -619,7 +655,11 @@
         const R = d / lambda;
         camadas.push({ material, lambda, mu, d, R });
       }
-      if (!camadas.length) return;
+      if (!camadas.length) {
+        msgEl.textContent = 'Preencha pelo menos uma camada com λ > 0 e espessura > 0.';
+        msgEl.style.display = 'block';
+        return;
+      }
     } else {
       tipo = bibliotecaEntry.tipo;
       zona = document.getElementById('zonaClimatica').value;
@@ -644,60 +684,111 @@
     else if (U <= 0.50) { classe = 'Melhorável'; badgeClass = 'warn'; }
     else { classe = 'Não conforme (existente típico)'; badgeClass = 'danger'; }
 
-    const Ti = 20, HRi = 0.5;
-    const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    // Condições interiores (lidas dos inputs; defaults 20°C / 50%)
+    const Ti = parseFloat(document.getElementById('inputTi').value) || 20;
+    const HRi = Math.min(100, Math.max(0, parseFloat(document.getElementById('inputHRi').value) || 50)) / 100;
+
+    const soloNaoAplicavel = (tipo === 'pavimento_solo');
     let condSupMeses = [];
     let condIntMeses = [];
     let interfacesCriticas = new Set();
     let diasSup = 0;
     let diasInt = 0;
+    let monthlyCondData = []; // g/m²·mês (+ condensação, - evaporação)
+    let annualNetKg = 0;      // kg/m²·ano acumulado líquido
 
-    for (let m = 0; m < 12; m++) {
-      const [Te, HRe, diasMes] = CLIMA[zona][m];
+    if (!soloNaoAplicavel) {
+      for (let m = 0; m < 12; m++) {
+        const [Te, HRe, diasMes] = CLIMA[zona][m];
 
-      // Condensação superficial
-      const theta_si = Ti - (Rsi / R_total) * (Ti - Te);
-      const f_Rsi = (theta_si - Te) / (Ti - Te);
-      const T_dew = pontoOrvalho(Ti, HRi);
-      const f_Rsi_crit = (T_dew - Te) / (Ti - Te);
-      if (f_Rsi < f_Rsi_crit) {
-        condSupMeses.push(meses[m]);
-        diasSup += diasMes;
-      }
-
-      // Condensação intersticial (Glaser)
-      const p_i = HRi * pSat(Ti);
-      const p_e = HRe * pSat(Te);
-      const deltaP = p_i - p_e;
-
-      let Z_acum = [0];
-      let Z_total = 0;
-      camadas.forEach(c => {
-        const Zi = c.mu * c.d / DELTA_0;
-        Z_total += Zi;
-        Z_acum.push(Z_total);
-      });
-
-      let R_acum = [0];
-      let R_parcial = 0;
-      camadas.forEach(c => {
-        R_parcial += c.R;
-        R_acum.push(R_parcial);
-      });
-
-      let houveCondIntNesteMes = false;
-      for (let j = 1; j < Z_acum.length; j++) {
-        const px = p_i - deltaP * (Z_acum[j] / Z_total);
-        const thetax = Ti - (Ti - Te) * (R_acum[j] / R_total);
-        const psatx = pSat(thetax);
-        if (px > psatx) {
-          houveCondIntNesteMes = true;
-          interfacesCriticas.add(`${camadas[j-1].material} / ${camadas[j]?.material || 'exterior'}`);
+        // Condensação superficial
+        const theta_si = Ti - (Rsi / R_total) * (Ti - Te);
+        // When Ti = Te there is no thermal gradient; default both factors to 0 → no condensation flagged (correct behaviour)
+        const f_Rsi = (Ti - Te) !== 0 ? (theta_si - Te) / (Ti - Te) : 0;
+        const T_dew = pontoOrvalho(Ti, HRi);
+        const f_Rsi_crit = (Ti - Te) !== 0 ? (T_dew - Te) / (Ti - Te) : 0;
+        if (f_Rsi < f_Rsi_crit) {
+          condSupMeses.push(MESES[m]);
+          diasSup += diasMes;
         }
-      }
-      if (houveCondIntNesteMes) {
-        condIntMeses.push(meses[m]);
-        diasInt += diasMes;
+
+        // Condensação intersticial – Glaser ISO 13788 melhorado
+        const p_i_m = HRi * pSat(Ti);
+        const p_e_m = HRe * pSat(Te);
+
+        let Z_acum = [0];
+        let Z_total = 0;
+        camadas.forEach(c => {
+          const Zi = c.mu * c.d / DELTA_0;
+          Z_total += Zi;
+          Z_acum.push(Z_total);
+        });
+
+        let R_acum = [0];
+        let R_parcial = 0;
+        camadas.forEach(c => {
+          R_parcial += c.R;
+          R_acum.push(R_parcial);
+        });
+
+        // 1ª passagem: encontrar interface crítica (maior excesso p - p_sat)
+        let maxExcess = 0, critJ = -1;
+        if (Z_total > 0) {
+          for (let j = 1; j < Z_acum.length; j++) {
+            const px = p_i_m - (p_i_m - p_e_m) * (Z_acum[j] / Z_total);
+            const thetax = Ti - (Ti - Te) * (R_acum[j] / R_total);
+            const psatx = pSat(thetax);
+            const excess = px - psatx;
+            if (excess > maxExcess) { maxExcess = excess; critJ = j; }
+          }
+        }
+
+        // 2ª passagem: perfil com clamp na interface crítica
+        let houveCondIntNesteMes = false;
+        for (let j = 1; j < Z_acum.length; j++) {
+          let px;
+          if (critJ < 0 || Z_total === 0) {
+            px = p_i_m - (p_i_m - p_e_m) * (Z_acum[j] / Z_total);
+          } else {
+            const psatCrit = pSat(Ti - (Ti - Te) * (R_acum[critJ] / R_total));
+            if (j <= critJ) {
+              px = Z_acum[critJ] > 0
+                ? p_i_m - (p_i_m - psatCrit) * (Z_acum[j] / Z_acum[critJ])
+                : p_i_m;
+            } else {
+              const Zrem = Z_total - Z_acum[critJ];
+              px = Zrem > 0
+                ? psatCrit - (psatCrit - p_e_m) * ((Z_acum[j] - Z_acum[critJ]) / Zrem)
+                : psatCrit;
+            }
+          }
+          const thetax = Ti - (Ti - Te) * (R_acum[j] / R_total);
+          const psatx = pSat(thetax);
+          if (px > psatx) {
+            houveCondIntNesteMes = true;
+            interfacesCriticas.add(`${camadas[j-1].material} / ${camadas[j]?.material || 'exterior'}`);
+          }
+        }
+
+        // Fluxo de condensado/evaporação (kg/m²·mês) na interface crítica
+        let g_month_kg = 0;
+        if (critJ >= 0 && Z_total > 0) {
+          const psatJ = pSat(Ti - (Ti - Te) * (R_acum[critJ] / R_total));
+          const Zin  = Z_acum[critJ];
+          const Zout = Z_total - Z_acum[critJ];
+          const g_in  = Zin  > 0 ? (p_i_m - psatJ) / Zin  : 0;
+          const g_out = Zout > 0 ? (psatJ - p_e_m) / Zout : 0;
+          const g_net = g_in - g_out; // + = condensação, - = evaporação
+          g_month_kg = g_net * diasMes * 86400;
+          if (g_net > 0) houveCondIntNesteMes = true;
+        }
+        monthlyCondData.push(+(g_month_kg * 1000).toFixed(1));
+        annualNetKg += g_month_kg;
+
+        if (houveCondIntNesteMes) {
+          condIntMeses.push(MESES[m]);
+          diasInt += diasMes;
+        }
       }
     }
 
@@ -711,16 +802,29 @@
 
     if (!fromBiblioteca) {
       const resumo = document.getElementById('resultadoResumo');
-      resumo.innerHTML = `
-        <p><strong>${nome}</strong> (${tipo}, Zona ${zona})</p>
-        <p>U = ${U.toFixed(3)} W/m²K &nbsp; | &nbsp;
-           U_lim(REH) = ${U_lim.toFixed(2)} W/m²K &nbsp;
-           <span class="badge ${badgeClass}">${classe}</span></p>
-        <p>R_total = ${R_total.toFixed(2)} m²K/W &nbsp; | &nbsp;
-           Camadas: ${camadas.length}</p>
-        <p>Condensação superficial: ${condSupMeses.length ? 'Sim ('+condSupMeses.join(', ')+')' : 'Não'} &nbsp; | &nbsp;
-           Condensação intersticial: ${condIntMeses.length ? 'Sim ('+condIntMeses.join(', ')+')' : 'Não'}</p>
-      `;
+      const nomeEsc = escapeHtml(nome);
+      const tipoEsc = escapeHtml(tipo);
+      const zonaEsc = escapeHtml(zona);
+      const classeEsc = escapeHtml(classe);
+      const soloAviso = soloNaoAplicavel
+        ? `<p style="color:var(--warn)">⚠ U(ISO 6946) = ${U.toFixed(3)} W/m²K é apenas uma aproximação — o cálculo regulamentar para pavimento sobre solo requer ISO 13370.</p>`
+        : '';
+      const condSupTxt = !soloNaoAplicavel
+        ? (condSupMeses.length ? 'Sim (' + escapeHtml(condSupMeses.join(', ')) + ')' : 'Não')
+        : '<em>N/A (solo)</em>';
+      const condIntTxt = !soloNaoAplicavel
+        ? (condIntMeses.length ? 'Sim (' + escapeHtml(condIntMeses.join(', ')) + ')' : 'Não')
+        : '<em>N/A (solo)</em>';
+      resumo.innerHTML =
+        `<p><strong>${nomeEsc}</strong> (${tipoEsc}, Zona ${zonaEsc})</p>` +
+        `<p>U = ${U.toFixed(3)} W/m²K &nbsp; | &nbsp;` +
+        `U_lim(REH) = ${U_lim.toFixed(2)} W/m²K &nbsp;` +
+        `<span class="badge ${badgeClass}">${classeEsc}</span></p>` +
+        soloAviso +
+        `<p>R_total = ${R_total.toFixed(2)} m²K/W &nbsp; | &nbsp;` +
+        `Camadas: ${camadas.length}</p>` +
+        `<p>Condensação superficial: ${condSupTxt} &nbsp; | &nbsp;` +
+        `Condensação intersticial: ${condIntTxt}</p>`;
     }
 
     simulacoes.push({
@@ -729,7 +833,10 @@
       diasSup, diasInt,
       severidadeSup, severidadeInt,
       interfacesCriticas: Array.from(interfacesCriticas),
-      origemBiblioteca: fromBiblioteca
+      origemBiblioteca: fromBiblioteca,
+      soloNaoAplicavel,
+      monthlyCondData,
+      annualNetKg
     });
     contadorElementos++;
     renderPizzaGrid();
@@ -759,6 +866,10 @@
   }
 
   function renderPizzaGrid() {
+    // Destroy existing Chart.js instances before clearing DOM
+    Object.values(chartInstances).forEach(c => { try { c.destroy(); } catch(e) { console.warn('Chart destroy failed:', e); } });
+    chartInstances = {};
+
     const grid = document.getElementById('pizzaGrid');
     grid.innerHTML = '';
     const k = simulacoes.length;
@@ -771,21 +882,45 @@
       if (i < k) {
         const sim = simulacoes[i];
         const origem = sim.origemBiblioteca ? ' (tipo SCE/ADENE)' : '';
-        cell.innerHTML = `
-          <div class="pizza-title">${sim.nome}${origem} — ${sim.tipo}, Zona ${sim.zona}</div>
-          <div class="charts-row">
-            <canvas id="pizzaU_${i}"></canvas>
-            <div class="svg-wrapper" id="svg_${i}"></div>
-          </div>
-          <div class="higro-note" id="note_${i}"></div>
-          <div class="credit">Tulio Cunha — Gestão de Projetos</div>
-        `;
+        const titleEl = document.createElement('div');
+        titleEl.className = 'pizza-title';
+        titleEl.textContent = sim.nome + origem + ' — ' + sim.tipo + ', Zona ' + sim.zona;
+
+        const chartsRow = document.createElement('div');
+        chartsRow.className = 'charts-row';
+
+        const canvas = document.createElement('canvas');
+        canvas.id = 'pizzaU_' + i;
+
+        const svgWrap = document.createElement('div');
+        svgWrap.className = 'svg-wrapper';
+        svgWrap.id = 'svg_' + i;
+
+        chartsRow.appendChild(canvas);
+        chartsRow.appendChild(svgWrap);
+
+        const noteEl = document.createElement('div');
+        noteEl.className = 'higro-note';
+        noteEl.id = 'note_' + i;
+
+        const creditEl = document.createElement('div');
+        creditEl.className = 'credit';
+        creditEl.textContent = 'Tulio Cunha — Gestão de Projetos';
+
+        cell.appendChild(titleEl);
+        cell.appendChild(chartsRow);
+        cell.appendChild(noteEl);
+        cell.appendChild(creditEl);
         grid.appendChild(cell);
-        desenharPizzaU(`pizzaU_${i}`, sim);
-        desenharSVG(`svg_${i}`, sim);
-        escreverNotaHigro(`note_${i}`, sim);
+
+        desenharPizzaU('pizzaU_' + i, sim);
+        desenharSVG('svg_' + i, sim);
+        escreverNotaHigro('note_' + i, sim);
       } else {
-        cell.innerHTML = `<div class="pizza-title">Slot disponível</div>`;
+        const slotEl = document.createElement('div');
+        slotEl.className = 'pizza-title';
+        slotEl.textContent = 'Slot disponível';
+        cell.appendChild(slotEl);
         grid.appendChild(cell);
       }
     }
@@ -801,7 +936,7 @@
         backgroundColor: ['#1f6f8b', '#a5d8ff']
       }]
     };
-    new Chart(ctx, {
+    chartInstances[canvasId] = new Chart(ctx, {
       type: 'pie',
       data,
       options: {
@@ -822,6 +957,7 @@
 
     sim.camadas.forEach((c, idx) => {
       const frac = c.d / totalEsp;
+      const matEsc = escapeHtml(c.material);
 
       if (vertical) {
         const h = frac * (height - 40);
@@ -829,7 +965,7 @@
           <rect x="40" y="${20 + offset}" width="${width - 80}" height="${h}"
                 fill="none" stroke="#111" stroke-width="1"/>
           <text x="45" y="${20 + offset + h/2}" font-size="9" fill="#111">
-            ${c.material} — ${(c.d*1000).toFixed(0)} mm
+            ${matEsc} — ${(c.d*1000).toFixed(0)} mm
           </text>
         `;
         offset += h;
@@ -872,17 +1008,50 @@
 
   function escreverNotaHigro(noteId, sim) {
     const el = document.getElementById(noteId);
-    const supMeses = sim.condSupMeses.length ? sim.condSupMeses.join(', ') : 'Nenhum';
-    const intMeses = sim.condIntMeses.length ? sim.condIntMeses.join(', ') : 'Nenhum';
-    const interfaces = sim.interfacesCriticas.length ? sim.interfacesCriticas.join(' | ') : 'Nenhuma interface crítica identificada';
-    el.innerHTML = `
-      <strong>Análise higrotérmica (ISO 13788):</strong><br>
-      • Superficial: ${sim.condSupMeses.length ? 'Sim' : 'Não'} (${supMeses})<br>
-      • Intersticial: ${sim.condIntMeses.length ? 'Sim' : 'Não'} (${intMeses})<br>
-      • Interfaces críticas: ${interfaces}<br>
-      • Dias risco superficial: ${sim.diasSup} dias/ano (${sim.severidadeSup})<br>
-      • Dias risco intersticial: ${sim.diasInt} dias/ano (${sim.severidadeInt})
-    `;
+    el.innerHTML = '';
+
+    if (sim.soloNaoAplicavel) {
+      const warn = document.createElement('p');
+      warn.style.cssText = 'color:var(--warn);margin:0;font-weight:500;';
+      warn.textContent = '⚠ Análise higrotérmica: NÃO APLICÁVEL para pavimento sobre solo.';
+      const detail = document.createElement('p');
+      detail.style.cssText = 'margin:0.25rem 0 0;';
+      detail.textContent = 'O terreno não é equivalente a ar exterior — a análise de Glaser pressupõe condições de ar em ambas as faces. Para este tipo de elemento use metodologia específica (ISO 13370 / regulamentação nacional). O U(ISO 6946) calculado é apenas uma aproximação.';
+      el.appendChild(warn);
+      el.appendChild(detail);
+      return;
+    }
+
+    const supMeses = sim.condSupMeses.length ? escapeHtml(sim.condSupMeses.join(', ')) : 'Nenhum';
+    const intMeses = sim.condIntMeses.length ? escapeHtml(sim.condIntMeses.join(', ')) : 'Nenhum';
+    const interfaces = sim.interfacesCriticas.length
+      ? sim.interfacesCriticas.map(escapeHtml).join(' | ')
+      : 'Nenhuma interface crítica identificada';
+
+    const condTable = sim.monthlyCondData && sim.monthlyCondData.length === 12
+      ? '<br>• Condensado/Evaporação (g/m²·mês): ' +
+        MESES.map((mes, i) => {
+          const val = sim.monthlyCondData[i];
+          const color = val > 0 ? 'color:var(--danger)' : val < 0 ? 'color:var(--ok)' : '';
+          return `<span style="${color}">${escapeHtml(mes)}:${val > 0 ? '+' : ''}${val}</span>`;
+        }).join(' ')
+      : '';
+
+    const annualNetG = sim.annualNetKg !== undefined ? +(sim.annualNetKg * 1000).toFixed(1) : null;
+    const annualTxt = annualNetG !== null
+      ? `<br>• Balanço anual: <strong style="color:${annualNetG > 50 ? 'var(--danger)' : annualNetG > 0 ? 'var(--warn)' : 'var(--ok)'}">${annualNetG > 0 ? '+' : ''}${annualNetG} g/m²·ano</strong>` +
+        (annualNetG > 50 ? ' ⚠ Acumulação significativa — verificar selagem e barreira de vapor.' : '')
+      : '';
+
+    el.innerHTML =
+      `<strong>Análise higrotérmica (ISO 13788, Glaser):</strong><br>` +
+      `• Superficial: ${sim.condSupMeses.length ? 'Sim' : 'Não'} (${supMeses})<br>` +
+      `• Intersticial: ${sim.condIntMeses.length ? 'Sim' : 'Não'} (${intMeses})<br>` +
+      `• Interfaces críticas: ${interfaces}` +
+      condTable +
+      annualTxt + `<br>` +
+      `• Dias risco superficial: ${sim.diasSup} dias/ano (${escapeHtml(sim.severidadeSup)})<br>` +
+      `• Dias risco intersticial: ${sim.diasInt} dias/ano (${escapeHtml(sim.severidadeInt)})`;
   }
 
   // --- Biblioteca: sugestão automática ---
