@@ -1,37 +1,9 @@
 <html>
 <head>
-    <title>Simulador Térmico e Higrotermico</title>
-    <script>
-        // Update the isMapValue function to check if the value is 'MAPA'
-        function isMapValue(v) {
-            return v === 'MAPA';
-        }
-
-        let lastValidZona;
-
-        function handleZonaClimaticaChange() {
-            const selectedZona = document.getElementById('zonaClimaticaSelect').value;
-            // Handle updates based on selectedZona
-            if (isMapValue(selectedZona)) {
-                // Logic when MAPA is selected
-                lastValidZona = selectedZona;
-                // Additional logic to open map or similar
-            }
-        }
-    </script>
+<title>Simulador Térmico e Higrotermico</title>
 </head>
 <body>
-    <h1>Simulador Térmico e Higrotermico</h1>
-    <div>
-        <label for="localizarEmMapa">Localizar em mapa:</label>
-        <select id="localizarEmMapa" name="localizarEmMapa">
-            <option value="MAPA">MAPA</option>
-        </select>
-    </div>
-    <div>
-        <select id="zonaClimaticaSelect" name="zonaClimatica" onchange="handleZonaClimaticaChange();">
-            <!-- Options for Zona Climática -->
-        </select>
-    </div>
+<h1>Bem-vindo ao Simulador Térmico e Higrotermico</h1>
+<p>Este é um exemplo de conteúdo que foi copiado do repositório.</p>
 </body>
 </html>
