@@ -1,28 +1,3 @@
-"zonaClimatica">
-    <option value="I">I</option>
-    <option value="II">II</option>
-    <option value="III">III</option>
-    <option value="IV">IV</option>
-    <option value="MAPA">Localizar em mapa</option>
-</select>
-
-<script>
-// Assuming there is an existing function that checks if the value is map
-function isMapValue(v) {
-    return v === "MAPA";
-}
-
-// Add logic to handle the new "MAPA" option
-function handleZoneSelection(value) {
-    if (isMapValue(value)) {
-        showMap(); // Your existing function to show the map
-    } else {
-        // Handle conversion to default zone
-        // Ensure that I is the default zone when the map is closed
-        // Existing logic for other zones remains unchanged
-    }
-}
-</script>
 <!doctype html>
 <html lang="pt">
 <head>
@@ -94,6 +69,12 @@ function handleZoneSelection(value) {
       font-style:italic;
     }
     .zonaHint b{ color:var(--text); font-style:normal; }
+
+    /* NOVO: distritos em itálico dentro do dropdown */
+    #zonaClimatica optgroup{
+      font-style: italic;
+      color: #6b7280;
+    }
 
     .card{
       background:var(--card);
@@ -396,29 +377,28 @@ function handleZoneSelection(value) {
           <div class="sec" style="border-top:0;padding-top:0;">
             <div class="field">
               <label for="zonaClimatica">Selecionar zona térmica</label>
+
+              <!-- PATCH: manter apenas 1 "Localizar em mapa", depois de IV + distritos em itálico -->
               <select id="zonaClimatica" class="control">
                 <option value="I">I</option>
-                <option value="I_MAPA">Localizar em mapa</option>
-
                 <option value="II">II</option>
-                <option value="II_MAPA">Localizar em mapa</option>
-
                 <option value="III">III</option>
-                <option value="III_MAPA">Localizar em mapa</option>
-
                 <option value="IV">IV</option>
-                <option value="IV_MAPA">Localizar em mapa</option>
+
+                <optgroup label="I : Porto, Braga, Viana do Castelo, Vila Real, Bragança, Aveiro, Viseu, Guarda, Coimbra"></optgroup>
+                <optgroup label="II : Lisboa, Leiria, Santarém, Castelo Branco"></optgroup>
+                <optgroup label="III : Setúbal, Évora, Beja"></optgroup>
+                <optgroup label="IV : Faro, Lagos, Albufeira (Algarve)"></optgroup>
+
+                <option value="MAPA">Localizar em mapa</option>
               </select>
 
+              <!-- PATCH: texto curto abaixo do menu -->
               <div class="zonaHint" id="zonaHint">
-                <b>🟦 Z.I (AZUL FRIOLENTO):</b>
-                Porto, Braga, Viana do Castelo, Vila Real, Bragança, Aveiro, Viseu, Guarda, Coimbra<br/>
-                <b>🟨 Z.II (AMARELO SUAVE):</b>
-                Lisboa, Leiria, Santarém, Castelo Branco<br/>
-                <b>🟢 Z.III (VERDE QUENTE):</b>
-                Setúbal, Évora, Beja<br/>
-                <b>🟠 Z.IV (LARANJA CALOR):</b>
-                Faro, Lagos, Albufeira (Algarve)
+                🟦 <b>Z.I</b> (FRIOLENTO)<br/>
+                🟨 <b>Z.II</b> (SUAVE)<br/>
+                🟢 <b>Z.III</b> (QUENTE)<br/>
+                🟠 <b>Z.IV</b> (CALOR)
               </div>
             </div>
           </div>
@@ -482,8 +462,6 @@ function handleZoneSelection(value) {
         <section class="card" id="secCriar">
           <div class="cardTitle">Crie seu Perfil de Isolamento Térmico</div>
           <p class="cardSubtitle">Crie sua solução e o desempenho energetico é comparado automaticamente.</p>
-
-          <!-- (REMOVIDO) bloco duplicado do nomePainel aqui -->
 
           <div class="sec">
             <div class="cardTitle" style="font-size:13px;">Adicionar camada</div>
@@ -705,9 +683,9 @@ function handleZoneSelection(value) {
       IV:  ["Faro","Lagos","Albufeira"]
     };
 
-    // === NOVO: helpers do mapa ===
+    // === PATCH: helpers do mapa (agora o dropdown usa um único value="MAPA") ===
     function isMapValue(v){
-      return typeof v === "string" && v.endsWith("_MAPA");
+      return v === "MAPA";
     }
 
     function showZonaMapa(show){
